@@ -35,7 +35,7 @@ pub fn ignore_validation(lang: Language, line_number: usize, content: &str) -> b
             Language::Python => "#",
             Language::Rust => "//",
         };
-        return remove_whitespace(ignore).contains(&format!("{}docstring-guard=ignore", prefix));
+        return remove_whitespace(ignore).contains(&format!("{prefix}docstring-guard=ignore"));
     }
     false
 }

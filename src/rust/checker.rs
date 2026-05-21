@@ -20,7 +20,7 @@ impl<'ast> Visit<'ast> for DocstringVisitor<'_> {
             self.file_content,
         ) {
             if let Some(missing_docstring) = has_docstring(&self.file_name, i) {
-                self.missing_docstrings.push(missing_docstring)
+                self.missing_docstrings.push(missing_docstring);
             }
         }
         visit::visit_item_fn(self, i);
@@ -33,7 +33,7 @@ impl<'ast> Visit<'ast> for DocstringVisitor<'_> {
             self.file_content,
         ) {
             if let Some(missing_docstring) = has_docstring(&self.file_name, i) {
-                self.missing_docstrings.push(missing_docstring)
+                self.missing_docstrings.push(missing_docstring);
             }
         }
         visit::visit_item_struct(self, i);

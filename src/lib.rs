@@ -4,6 +4,7 @@ pub use python::checker::check_file_for_docstrings as check_python_file;
 pub use rust::checker::check_file_for_docstrings as check_rust_file;
 pub mod utils;
 
+#[derive(Clone, Copy)]
 pub enum Language {
     Python,
     Rust,

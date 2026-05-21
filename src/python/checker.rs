@@ -8,14 +8,11 @@ use std::path::Path;
 fn is_docstring(stmt: &Stmt) -> bool {
     stmt.as_expr_stmt()
         .and_then(|e| e.value.as_constant_expr())
-        .map_or(false, |c| c.value.is_str())
+        .is_some_and(|c| c.value.is_str())
 }
 
 fn is_dunder(name: &str) -> bool {
-    if name.starts_with("__") && name.ends_with("__") {
-        return true;
-    }
-    false
+    name.starts_with("__") && name.ends_with("__")
 }
 
 fn get_line_number(content: &str, range: TextRange) -> usize {
@@ -24,37 +21,42 @@ fn get_line_number(content: &str, range: TextRange) -> usize {
     slice.chars().filter(|c| *c == '\n').count() + 1
 }
 
+fn check_statement_for_docstring(
+    path: &Path,
+    content: &str,
+    stmt: &Stmt,
+) -> Option<MissingDocstring> {
+    match stmt {
+        Stmt::FunctionDef(s) => check_documentable_for_docstring(path, content, s),
+        Stmt::ClassDef(s) => check_documentable_for_docstring(path, content, s),
+        _ => None,
+    }
+}
+
 fn check_statements_for_docstrings(
     path: &Path,
     content: &str,
     stmts: &[Stmt],
 ) -> Vec<MissingDocstring> {
-    let mut missing_docstrings: Vec<MissingDocstring> = vec![];
+    let mut missing_docstrings = vec![];
 
-    for stmt in stmts.iter() {
-        let entry: Option<MissingDocstring> = if let Some(s) = stmt.as_function_def_stmt() {
-            check_documentable_for_docstring(path, s, content)
-        } else if let Some(s) = stmt.as_class_def_stmt() {
-            if let Some(missing) = check_documentable_for_docstring(path, s, content) {
-                missing_docstrings.push(missing);
-            }
+    for stmt in stmts {
+        if let Some(entry) = check_statement_for_docstring(path, content, stmt) {
+            missing_docstrings.push(entry);
+        }
+
+        if let Some(s) = stmt.as_class_def_stmt() {
             missing_docstrings.extend(check_statements_for_docstrings(path, content, s.body()));
-            continue;
-        } else {
-            None
-        };
-
-        if let Some(e) = entry {
-            missing_docstrings.push(e);
         }
     }
+
     missing_docstrings
 }
 
 fn check_documentable_for_docstring(
     path: &Path,
-    stmt: &impl Documentable,
     content: &str,
+    stmt: &impl Documentable,
 ) -> Option<MissingDocstring> {
     let range = stmt.range();
     let id = stmt.name().as_str();
@@ -150,6 +152,8 @@ mod tests {
     #[case("__init__", true)]
     #[case("test", false)]
     #[case("_test", false)]
+    #[case("_test__", false)]
+    #[case("__test_", false)]
     fn test_is_dunder(#[case] input: String, #[case] expected: bool) {
         assert_eq!(expected, is_dunder(&input))
     }
